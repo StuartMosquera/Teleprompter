@@ -4,7 +4,58 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        await ShowTeleprompter();
+        await RunTeleprompter();
+    }
+
+    private static async Task RunTeleprompter()
+    {
+        var config = new TeleprompterConfig();
+        var displayTask = ShowTeleprompter(config);
+        var speedTask = GetInput(config);
+        await Task.WhenAny(displayTask, speedTask);
+    }
+
+    private static async Task ShowTeleprompter(TeleprompterConfig config)
+    {
+        var words = ReadFrom("sampleQuotes.txt");
+
+        foreach (var word in words)
+        {
+            Console.Write(word);
+
+            if (!string.IsNullOrWhiteSpace(word))
+            {
+                await Task.Delay(config.DelayInMilliseconds);
+            }
+        }
+
+        config.SetDone();
+    }
+
+    private static async Task GetInput(TeleprompterConfig config)
+    {
+        Action work = () =>
+        {
+            do
+            {
+                var key = Console.ReadKey(true);
+
+                if (key.KeyChar == '>')
+                {
+                    config.UpdateDelay(-10);
+                }
+                else if (key.KeyChar == '<')
+                {
+                    config.UpdateDelay(10);
+                }
+                else if (key.KeyChar == 'X' || key.KeyChar == 'x')
+                {
+                    config.SetDone();
+                }
+            } while (!config.Done);
+        };
+
+        await Task.Run(work);
     }
 
     static IEnumerable<string> ReadFrom(string file)
@@ -33,48 +84,5 @@ internal class Program
                 yield return Environment.NewLine;
             }
         }
-    }
-
-    private static async Task ShowTeleprompter()
-    {
-        var words = ReadFrom("sampleQuotes.txt");
-
-        foreach (var word in words)
-        {
-            Console.Write(word);
-
-            if (!string.IsNullOrWhiteSpace(word))
-            {
-                await Task.Delay(200);
-            }
-        }
-    }
-
-    private static async Task GetInput()
-    {
-        var delay = 200;
-
-        Action work = () =>
-        {
-            do
-            {
-                var key = Console.ReadKey(true);
-
-                if (key.KeyChar == '>')
-                {
-                    delay -= 10;
-                }
-                else if (key.KeyChar == '<')
-                {
-                    delay += 10;
-                }
-                else if (key.KeyChar == 'X' || key.KeyChar == 'x')
-                {
-                    break;
-                }
-            } while (true);
-        };
-
-        await Task.Run(work);
     }
 }
